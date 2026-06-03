@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MODELOS DE CATÁLOGO (Tablas de referencia)
+// ============================================
+
+model TipoGasto {
+  id          Int       @id @default(autoincrement())
+  nombre      String    @unique
+  descripcion String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  facturas    Factura[]
+
+  @@map("tipogasto")
+}
+
+model TipoFactura {
+  id        Int       @id @default(autoincrement())
+  nombre    String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  facturas  Factura[]
+
+  @@map("tipofactura")
+}
+
+model TipoDocumento {
+  id        Int       @id @default(autoincrement())
+  nombre    String    @unique // factura, recibo, otros
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  facturas  Factura[]
+
+  @@map("tipodocumento")
+}
+
+// ============================================
+// MODELO DE USUARIO
+// ============================================
+
+model Usuario {
+  id            Int             @id @default(autoincrement())
+  nombre        String
+  correo        String          @unique
+  contrasena    String
+  estado        String          @default("activo") // activo, inactivo
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  facturas      Factura[]
+  detalleEnvios DetalleEnvio[]
+
+  @@map("usuario")
+}
+
+// ============================================
+// MODELO DE FACTURA (Principal)
+// ============================================
+
+model Factura {
+  id                    Int              @id @default(autoincrement())
+  usuarioId             Int
+  usuario               Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  
+  // Información básica
+  fecha                 DateTime
+  proveedor             String
+  monto                 Decimal          @db.Decimal(10, 2)
+  descripcion           String?
+  imagen                String?          // URL de la imagen almacenada
+  
+  // Clasificación
+  tipoGastoId           Int
+  tipoGasto             TipoGasto        @relation(fields: [tipoGastoId], references: [id])
+  tipoFacturaId         Int
+  tipoFactura           TipoFactura      @relation(fields: [tipoFacturaId], references: [id])
+  tipoDocumentoId       Int
+  tipoDocumento         TipoDocumento    @relation(fields: [tipoDocumentoId], references: [id])
+  
+  // Datos OCR/Extracción
+  datosExtraidos        Json?            // Almacena datos extraídos automáticamente
+  identificadorUsuario  String?          // RIF/CUIT del usuario
+  facturaFisico         Boolean          @default(false)
+  
+  // Auditoría
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  estado                String           @default("pendiente") // pendiente, procesada, archivada
+  
+  // Relaciones
+  detalleEnvios         FacturaEnvio[]
+
+  @@index([usuarioId])
+  @@index([tipoGastoId])
+  @@index([fecha])
+  @@map("factura")
+}
+
+// ============================================
+// MODELO DE ENVÍO/COMPARTICIÓN
+// ============================================
+
+model DetalleEnvio {
+  id               Int             @id @default(autoincrement())
+  usuarioId        Int
+  usuario          Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  
+  // Información de envío
+  timestamp        DateTime        @default(now())
+  destinatario     String          // Email, teléfono, etc.
+  medioEnvio       String          // email, whatsapp, drive, etc.
+  estado           String          @default("pendiente") // pendiente, enviado, fallido
+  periodoMes       String?
+  pdfUrl           String?
+  total            Decimal?        @db.Decimal(10, 2)
+  cantidadFacturas Int?
+  
+  // Relaciones
+  facturas         FacturaEnvio[]
+
+  @@index([usuarioId])
+  @@index([timestamp])
+  @@map("detalle_envio")
+}
+
+// ============================================
+// TABLA PIVOTE (Muchos-a-Muchos)
+// ============================================
+
+model FacturaEnvio {
+  id            Int          @id @default(autoincrement())
+  facturaId     Int
+  factura       Factura      @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  detalleEnvioId Int
+  detalleEnvio  DetalleEnvio @relation(fields: [detalleEnvioId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime     @default(now())
+
+  @@unique([facturaId, detalleEnvioId])
+  @@index([facturaId])
+  @@index([detalleEnvioId])
+  @@map("factura_envio")
+}
