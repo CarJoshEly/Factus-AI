@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, setSessionCookie } from "@/lib/auth";
+import { setSessionCookie } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
@@ -27,11 +28,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const hashedPassword = await bcrypt.hash(contrasena, 10);
+
     const usuario = await prisma.usuario.create({
       data: {
         nombre,
         correo,
-        contrasena: hashPassword(contrasena),
+        contrasena: hashedPassword,
       },
     });
 

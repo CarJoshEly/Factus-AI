@@ -30,7 +30,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Formato no permitido para la lectura automatica." }, { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    // Llamamos a la función que contiene el prompt
     const extractedData = await extractInvoiceData(buffer, file.type);
 
     return NextResponse.json({ extractedData });

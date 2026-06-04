@@ -8,6 +8,7 @@ export interface InvoiceData {
   proveedor: string;
   monto: number;
   categoria: string;
+  descripcion: string;
 }
 
 async function generateInvoiceContent(imageBuffer: Buffer, mimeType: string, modelName: string) {
@@ -18,11 +19,15 @@ async function generateInvoiceContent(imageBuffer: Buffer, mimeType: string, mod
 
   const prompt = `
 Analiza la imagen de esta factura o recibo, aunque este arrugada, borrosa o con poco contraste.
-Extrae estos datos en formato JSON:
-- fecha: formato YYYY-MM-DD. Si la factura usa DD/MM/YY, conviertela correctamente.
+Extrae estos datos en formato JSON puro:
+- fecha: formato YYYY-MM-DD. 
+  IMPORTANTE: Las facturas están en español (formato latino DD/MM/YYYY). 
+  REGLA DE ORO: El primer número es el DÍA y el segundo es el MES. 
+  Ejemplo: "01/06/2026" DEBE ser "2026-06-01" (Junio), NUNCA "2026-01-06" (Enero).
 - proveedor: nombre comercial o empresa emisora.
 - monto: total final a pagar como numero decimal. Usa "Total a Pagar" si aparece.
 - categoria: una categoria de gasto entre Alimentacion, Transporte, Servicios, Tecnologia, Materiales u Otros.
+- descripcion: una descripción muy breve (máximo 10 palabras) de lo que se compró basándote en los conceptos de la factura.
 
 No inventes datos. Si un campo no se puede leer, usa una cadena vacia para texto o 0 para monto.
 Responde exclusivamente con el objeto JSON puro, sin bloques de codigo markdown.
@@ -67,9 +72,17 @@ export async function extractInvoiceData(imageBuffer: Buffer, mimeType: string):
   const text = response.text();
 
   try {
-    const cleanText = text.replace(/```json|```/g, "").trim();
-    return JSON.parse(cleanText) as InvoiceData;
-  } catch {
+    // Buscamos el inicio y fin del objeto JSON para ignorar caracteres basura (como esa "N" extra)
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error("No se encontró un objeto JSON válido en la respuesta.");
+    }
+
+    const cleanJson = text.substring(firstBrace, lastBrace + 1);
+    return JSON.parse(cleanJson) as InvoiceData;
+  } catch (e) {
     console.error("Error parsing AI response:", text);
     throw new Error("La IA no devolvio un formato JSON valido.");
   }

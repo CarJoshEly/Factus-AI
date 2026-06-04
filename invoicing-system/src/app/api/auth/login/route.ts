@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, setSessionCookie } from "@/lib/auth";
+import { setSessionCookie } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
       where: { correo },
     });
 
-    if (!usuario || !verifyPassword(contrasena, usuario.contrasena)) {
+    if (!usuario || !(await bcrypt.compare(contrasena, usuario.contrasena))) {
       return NextResponse.json(
         { error: "Correo o contraseña incorrectos." },
         { status: 401 }

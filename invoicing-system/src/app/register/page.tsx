@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import logotipo from "@/src/assets/logotipo.png";
+import logotipo from "@/assets/logotipo.png";
 
 export default function RegisterPage() {
   const router = useRouter();

@@ -103,9 +103,15 @@ export default function ReportForm() {
       {period && (
         <div className="space-y-2">
           <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Facturas encontradas ({invoices.length})</p>
-          <div className="max-h-40 overflow-y-auto rounded-2xl border border-slate-200 p-2 dark:border-white/10">
+          <div className={`max-h-40 overflow-y-auto rounded-2xl border border-slate-200 p-2 dark:border-white/10 transition-opacity duration-300 ${fetching ? 'opacity-50' : 'opacity-100'}`}>
             {fetching ? (
-              <p className="p-4 text-center text-xs text-slate-500">Buscando...</p>
+              <div className="flex flex-col items-center justify-center p-8 gap-3">
+                <div className="relative">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-[#18a57c]" />
+                  <div className="absolute inset-0 h-6 w-6 animate-pulse rounded-full bg-[#18a57c]/10" />
+                </div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Sincronizando...</p>
+              </div>
             ) : invoices.length > 0 ? (
               invoices.map((inv) => (
                 <label key={inv.id} className="flex cursor-pointer items-center gap-3 rounded-xl p-2 hover:bg-slate-50 dark:hover:bg-white/5">
@@ -178,10 +184,17 @@ export default function ReportForm() {
       )}
 
       <button
-        disabled={loading || (period !== "" && invoices.length === 0)}
-        className="w-full rounded-full bg-[#0d3a71] py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+        disabled={loading || fetching || (period !== "" && invoices.length === 0)}
+        className="w-full rounded-full bg-[#0d3a71] py-4 text-sm font-bold text-white transition-all hover:shadow-lg hover:shadow-blue-500/10 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3"
       >
-        {loading ? "Procesando..." : "Generar y Enviar"}
+        {loading ? (
+          <>
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+            <span className="animate-pulse">Generando PDF...</span>
+          </>
+        ) : (
+          <span>Generar y Enviar Reporte</span>
+        )}
       </button>
     </form>
   );

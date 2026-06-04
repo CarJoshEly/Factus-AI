@@ -256,7 +256,12 @@ export function SmartInvoicePage() {
     setIsSaving(true);
     try {
       const data = new FormData();
-      data.append("fecha", form.fecha);
+      
+      // Normalizamos la fecha a mediodía UTC para evitar saltos de zona horaria
+      const [year, month, day] = form.fecha.split("-").map(Number);
+      const normalizedDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).toISOString();
+      
+      data.append("fecha", normalizedDate);
       data.append("proveedor", form.proveedor.trim());
       data.append("monto", form.monto);
       data.append("descripcion", form.descripcion.trim());
@@ -583,7 +588,12 @@ export function SmartInvoicePage() {
                 recentInvoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
                     <td className="px-4 py-3 font-medium">{invoice.proveedor}</td>
-                    <td className="px-4 py-3">{new Date(invoice.fecha).toLocaleDateString("es-HN")}</td>
+                    <td className="px-4 py-3">
+                      {new Date(invoice.fecha).toLocaleDateString("es-HN", {
+                        timeZone: "UTC",
+                        day: "2-digit", month: "2-digit", year: "numeric"
+                      })}
+                    </td>
                     <td className="px-4 py-3">{invoice.tipoGasto?.nombre ?? "Sin categoria"}</td>
                     <td className="px-4 py-3">{formatCurrency(Number(invoice.monto))}</td>
                     <td className="px-4 py-3">

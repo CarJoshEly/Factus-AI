@@ -19,6 +19,7 @@ export default function NewInvoicePage() {
     proveedor: "",
     monto: 0,
     categoria: "Otros",
+    descripcion: "",
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,11 +72,17 @@ export default function NewInvoicePage() {
 
     setIsSaving(true);
     try {
+      // Forzamos la creación de la fecha al mediodía UTC para evitar saltos de día
+      // independientemente de la zona horaria del navegador o del servidor.
+      const [year, month, day] = invoiceData.fecha.split("-").map(Number);
+      const normalizedDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).toISOString();
+
       const res = await fetch("/api/facturas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...invoiceData,
+          fecha: normalizedDate,
           fileUrl: fileUrl || previewUrl, // URL final de la imagen
         }),
       });
@@ -143,9 +150,16 @@ export default function NewInvoicePage() {
             )}
             
             {isProcessing && (
-              <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                <p className="text-blue-600 font-bold animate-pulse">La IA está analizando tu factura...</p>
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center z-10 animate-in fade-in duration-500">
+                <div className="relative">
+                  <div className="h-20 w-20 animate-spin rounded-full border-[3px] border-slate-100 border-t-blue-600"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="h-10 w-10 animate-pulse rounded-full bg-blue-600/10 flex items-center justify-center">
+                      <div className="h-2 w-2 rounded-full bg-blue-600" />
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-6 text-blue-700 text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Lectura Inteligente</p>
               </div>
             )}
           </div>
@@ -219,11 +233,17 @@ export default function NewInvoicePage() {
               <div className="pt-4">
                 <button 
                   disabled={!file || isProcessing || isSaving}
-                  className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2"
+                  className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 active:scale-[0.99] disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-3"
                   onClick={handleSave}
                 >
-                  {isSaving && <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>}
-                  {isSaving ? "Guardando..." : "Guardar Factura"}
+                  {isSaving ? (
+                    <>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+                      <span className="animate-pulse tracking-wide">Finalizando...</span>
+                    </>
+                  ) : (
+                    "Guardar Factura"
+                  )}
                 </button>
               </div>
             </div>

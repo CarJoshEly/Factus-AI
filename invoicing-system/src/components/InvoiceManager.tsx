@@ -183,7 +183,12 @@ export function InvoiceManager() {
 
     try {
       const formData = new FormData();
-      formData.append("fecha", form.fecha);
+      
+      // Normalización UTC para evitar el error del día anterior
+      const [year, month, day] = form.fecha.split("-").map(Number);
+      const normalizedDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0)).toISOString();
+      
+      formData.append("fecha", normalizedDate);
       formData.append("proveedor", form.proveedor.trim());
       formData.append("monto", form.monto);
       formData.append("descripcion", form.descripcion);
@@ -541,7 +546,11 @@ export function InvoiceManager() {
                   </div>
                   <div className="rounded-2xl bg-white px-3 py-2 dark:bg-slate-950/80">
                     <p className="text-xs uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Fecha</p>
-                    <p className="mt-2 text-lg font-semibold text-slate-950 dark:text-white">{new Date(selectedInvoice.fecha).toLocaleDateString("es-VE")}</p>
+                    <p className="mt-2 text-lg font-semibold text-slate-950 dark:text-white">
+                      {new Date(selectedInvoice.fecha).toLocaleDateString("es-VE", {
+                        timeZone: "UTC"
+                      })}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-3 grid gap-3 text-sm md:grid-cols-2">
@@ -644,7 +653,11 @@ export function InvoiceManager() {
               {filteredInvoices.length > 0 ? (
                 filteredInvoices.map((invoice) => (
                   <tr key={invoice.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
-                    <td className="px-4 py-3">{new Date(invoice.fecha).toLocaleDateString("es-VE")}</td>
+                    <td className="px-4 py-3">
+                      {new Date(invoice.fecha).toLocaleDateString("es-VE", {
+                        timeZone: "UTC"
+                      })}
+                    </td>
                     <td className="px-4 py-3 font-medium">{invoice.proveedor}</td>
                     <td className="px-4 py-3">{formatCurrency(Number(invoice.monto))}</td>
                     <td className="px-4 py-3">{invoice.tipoGasto.nombre}</td>
